@@ -334,6 +334,7 @@ TAG_TRANSLATIONS.update(
         "Bobblehead": "娃",
         "Bulk": "批",
         "Fish": "生鱼",
+        "Fish-S": "腐",
         "Gather": "采",
         "Bits": "鱼块",
         "Gasmask": "毒面",
@@ -346,7 +347,7 @@ TAG_TRANSLATIONS.update(
         "Passcode": "码",
         "Nuke": "核",
         "Treasure": "宝",
-        "Tea-S": "茶S",
+        "Tea-S": "腐",
         "Hazmat": "防化",
         "Package": "包",
         "Resource": "资",
@@ -357,7 +358,7 @@ TAG_TRANSLATIONS.update(
         "Password": "密",
         "Candy": "糖",
         "Drink": "饮",
-        "Drink-S": "饮腐",
+        "Drink-S": "腐",
         "Daily": "日",
         "Aid": "辅",
         "TEMP": "临",
@@ -375,7 +376,9 @@ TAG_TRANSLATIONS.update(
         "Vendor": "商",
         "Misc": "杂",
         "Cake": "糕",
-        "Cake-S": "糕S",
+        "Cake-S": "腐",
+        "Cobbler-S": "腐",
+        "Candy-S": "腐",
         "Thrown": "投",
         "Restricted": "限",
         "Mission": "任务",
@@ -506,6 +509,15 @@ COMPONENT_TRANSLATIONS = {
 def translate_tag_content(tag: str) -> str:
     if tag in TAG_TRANSLATIONS:
         return TAG_TRANSLATIONS[tag]
+
+    suffix_match = re.match(r"^.+-([SDBV])$", tag)
+    if suffix_match:
+        return {
+            "S": "腐",
+            "D": "病",
+            "B": "包",
+            "V": "卖",
+        }[suffix_match.group(1)]
 
     if "/" in tag:
         parts = tag.split("/")
