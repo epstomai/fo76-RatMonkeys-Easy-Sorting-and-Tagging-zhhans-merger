@@ -2,7 +2,6 @@ param(
     [string]$ToolsRoot = "F:\games\fallout76 tools",
     [string]$GameData = "H:\XboxGames\Fallout 76\Content\Data",
     [string]$RatZip = "",
-    [string]$QuizzlessSst = "",
     [switch]$DryRun,
     [switch]$KeepTemp
 )
@@ -31,9 +30,6 @@ $argsList = @(
 
 if ($RatZip) {
     $argsList += @("--rat-zip", $RatZip)
-}
-if ($QuizzlessSst) {
-    $argsList += @("--quizzless-sst", $QuizzlessSst)
 }
 if ($DryRun) {
     $argsList += "--dry-run"
