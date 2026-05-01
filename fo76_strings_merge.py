@@ -309,6 +309,155 @@ SPECIAL_TRANSLATIONS = {
     "Agi": "敏捷",
 }
 
+TAG_TRANSLATIONS.update(
+    {
+        "Note": "纸",
+        "Weapon Mod": "武改",
+        "Armor Mod": "甲改",
+        "Apparel": "衣",
+        "Junk": "杂",
+        "Holo": "带",
+        "Headwear": "帽",
+        "PA Mod": "动改",
+        "Magazine": "刊",
+        "Mask": "面",
+        "Harvest": "采",
+        "Key": "钥",
+        "Ammo": "弹",
+        "Food": "食",
+        "Food-S": "食S",
+        "Food-D": "食D",
+        "Food-C": "食C",
+        "Alcohol": "酒",
+        "Keycard": "卡",
+        "Chem": "药",
+        "Bobblehead": "娃",
+        "Bulk": "批",
+        "Fish": "鱼",
+        "Gather": "采",
+        "Bits": "鱼块",
+        "Gasmask": "毒面",
+        "Glasses": "镜",
+        "Mine": "雷",
+        "Meat": "肉",
+        "Grenade": "榴",
+        "Helmet": "盔",
+        "Junk-NoScrap": "不拆",
+        "Passcode": "码",
+        "Nuke": "核",
+        "Treasure": "宝",
+        "Tea-S": "茶S",
+        "Hazmat": "防化",
+        "Package": "包",
+        "Resource": "资",
+        "Gift": "礼",
+        "Scrap-B": "废B",
+        "Scrap-V": "废V",
+        "Serum": "清",
+        "Password": "密",
+        "Candy": "糖",
+        "Drink": "饮",
+        "Drink-S": "饮S",
+        "Daily": "日",
+        "Aid": "辅",
+        "TEMP": "临",
+        "Herb": "草",
+        "Nuka": "核可",
+        "Title": "称",
+        "Game": "游",
+        "Start Event": "开事",
+        "Quest": "任",
+        "Confirm Relationship": "确认",
+        "Bandana": "巾",
+        "Disguise": "伪",
+        "Brotherhood": "兄弟",
+        "Ore": "矿",
+        "Vendor": "商",
+        "Misc": "杂",
+        "Cake": "糕",
+        "Cake-S": "糕S",
+        "Thrown": "投",
+        "Restricted": "限",
+        "Mission": "任务",
+        "Core": "芯",
+        "Underarmor": "内衬",
+        "Flux": "剂",
+        "Spoiled": "坏",
+        "Foundation": "基金",
+        "Crater": "火山",
+        "Ammon": "弹",
+        "Scrap": "废",
+        "System": "系",
+        "Optional": "选",
+        "Recipe": "方",
+        "Cure": "疗",
+        "Dog Treat": "狗粮",
+        "Kit": "包",
+        "Draft": "稿",
+        "Attack": "攻",
+        "ATTACK": "攻",
+        "Lie": "谎",
+        "LIE": "谎",
+        "Flirt": "撩",
+        "Flirts": "撩",
+        "Bribe": "贿",
+        "Charisma": "魅",
+        "Strength": "力",
+        "Perception": "感",
+        "Endurance": "耐",
+        "Intelligence": "智",
+        "Agility": "敏",
+        "Luck": "运",
+        "Low Intelligence": "低智",
+        "Give Stimpak": "给针",
+        "Give Caps": "给盖",
+        "Give Book": "给书",
+        "Give Heirloom Lighter": "给火",
+        "Not In Power Armor": "无甲",
+        "Start Caravan": "商队",
+        "Large caravan only": "大队",
+        "End Romance": "分手",
+        "Help Hugo": "助雨",
+        "Kill Hugo": "杀雨",
+        "Capture Hugo": "捕雨",
+        "SPECIAL": "特",
+        "Health": "血",
+        "Durability": "耐久",
+        "V.A.T.S. Enhanced": "VATS",
+        "Resistances": "抗",
+        "Elemental": "元",
+        "Invigorating": "振",
+        "Enervating": "弱",
+        "Addictol": "解瘾",
+        "Mentats": "敏达",
+        "Calmex": "镇静",
+        "Psycho": "赛柯",
+        "Daytripper": "白日",
+        "Daddy-O": "老爹",
+    }
+)
+
+SPECIAL_TRANSLATIONS.update(
+    {
+        "Strength": "力",
+        "Perception": "感",
+        "Endurance": "耐",
+        "Charisma": "魅",
+        "Intelligence": "智",
+        "Agility": "敏",
+        "Luck": "运",
+        "STR": "力",
+        "PER": "感",
+        "END": "耐",
+        "CHR": "魅",
+        "INT": "智",
+        "AGI": "敏",
+        "LCK": "运",
+        "LK": "运",
+        "Agi": "敏",
+    }
+)
+
 COMPONENT_TRANSLATIONS = {
     "Acid": "酸",
     "Adhesive": "黏合剂",
@@ -358,6 +507,12 @@ def translate_tag_content(tag: str) -> str:
     if tag in TAG_TRANSLATIONS:
         return TAG_TRANSLATIONS[tag]
 
+    if "/" in tag:
+        parts = tag.split("/")
+        translated_parts = [translate_tag_content(part.strip()) for part in parts]
+        if translated_parts != [part.strip() for part in parts]:
+            return "/".join(translated_parts)
+
     special_match = re.match(
         r"^(Strength|Perception|Endurance|Charisma|Intelligence|Agility|Luck|STR|PER|END|CHR|INT|AGI|LCK|LK|Agi)\s*([+\-]?\d+\+?|\+\d+|\d+\-)?$",
         tag,
@@ -365,16 +520,16 @@ def translate_tag_content(tag: str) -> str:
     if special_match:
         label = SPECIAL_TRANSLATIONS[special_match.group(1)]
         value = special_match.group(2)
-        return f"{label} {value}".strip()
+        return f"{label}{value}" if value else label
 
     level_match = re.match(r"^(?:Level|lvl)\s*(\d+\+?)$", tag, flags=re.IGNORECASE)
     if level_match:
-        return f"等级 {level_match.group(1)}"
+        return f"Lv{level_match.group(1)}"
 
-    for unit, translated_unit in (("Caps", "瓶盖"), ("caps", "瓶盖"), ("Supplies", "补给")):
+    for unit, translated_unit in (("Caps", "盖"), ("caps", "盖"), ("Supplies", "补")):
         if tag.endswith(f" {unit}"):
             amount = tag[: -len(unit)].strip()
-            return f"{amount} {translated_unit}"
+            return f"{amount}{translated_unit}"
 
     return tag
 
