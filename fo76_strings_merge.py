@@ -288,6 +288,12 @@ TAG_TRANSLATIONS = {
     "Psycho": "赛柯",
     "Daytripper": "白日梦",
     "Daddy-O": "老爹-O",
+    # RatMonkeys 2.46
+    "NOTE": "纸条",
+    "Pet": "宠物",
+    "Ticket": "票据",
+    "Banner": "旗帜",
+    "Costume": "装扮",
 }
 
 SPECIAL_TRANSLATIONS = {
@@ -437,6 +443,12 @@ TAG_TRANSLATIONS.update(
         "Psycho": "赛柯",
         "Daytripper": "白日",
         "Daddy-O": "老爹",
+        # RatMonkeys 2.46
+        "NOTE": "纸",
+        "Pet": "宠",
+        "Ticket": "票",
+        "Banner": "旗",
+        "Costume": "装",
     }
 )
 
