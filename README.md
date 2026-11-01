@@ -84,6 +84,20 @@ run-fo76-strings-merge.bat
 
 脚本会自动备份当前 strings，备份目录会在运行结果里显示。
 
+### 标准版（保留英文标签）
+
+默认生成 Full 版（标签和成分都翻译）。加 `-KeepEnglishTags` 生成标准版：文本是中文，但 RatMonkeys 的标签和成分列表保留英文，例如 `[Junk] 红色花园矮人 (1.5lb, Ceramic, Concrete)`。
+
+```powershell
+.\run-fo76-strings-merge.ps1 -KeepEnglishTags
+```
+
+如果只想生成文件、不覆盖游戏目录，可以直接调用 Python，并用 `--strings-dir` 指定一个已存在的输出目录：
+
+```powershell
+python fo76_strings_merge.py --keep-english-tags --strings-dir "D:\out\standard"
+```
+
 ## 安装已生成的 strings
 
 如果你下载的是已经生成好的 strings 文件，把这三个文件放进：

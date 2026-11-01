@@ -615,6 +615,7 @@ def merge_kind(
     official_en_path: pathlib.Path,
     official_zh_path: pathlib.Path,
     rat_en_path: pathlib.Path,
+    keep_english_tags: bool = False,
 ) -> tuple[list[tuple[int, str]], dict[str, int]]:
     official_en = dict(read_strings(official_en_path, kind))
     official_zh = dict(read_strings(official_zh_path, kind))
@@ -644,9 +645,10 @@ def merge_kind(
         merged, fixed = apply_manual_fixes(en_text or rat_text, merged)
         if fixed:
             manual_fixes += 1
-        merged, tag_count, component_count = localize_ratmonkeys_additions(merged)
-        localized_tags += tag_count
-        localized_components += component_count
+        if not keep_english_tags:
+            merged, tag_count, component_count = localize_ratmonkeys_additions(merged)
+            localized_tags += tag_count
+            localized_components += component_count
         out_rows.append((string_id, merged))
 
     stats = {
@@ -719,6 +721,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
 
         report: dict[str, object] = {
             "dry_run": args.dry_run,
+            "keep_english_tags": args.keep_english_tags,
             "backup_dir": str(backup_dir),
             "rat_zip": str(rat_zip),
             "strings_dir": str(strings_dir),
@@ -732,6 +735,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
                 extracted[f"seventysix_en.{kind.lower()}"],
                 extracted[f"seventysix_zhhans.{kind.lower()}"],
                 rat_files[f"seventysix_en.{kind.lower()}"],
+                keep_english_tags=args.keep_english_tags,
             )
             kind_report[kind] = stats
             if not args.dry_run:
@@ -756,6 +760,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--localization-ba2", default="")
     parser.add_argument("--downloads", default=str(default_downloads))
     parser.add_argument("--rat-zip", default="")
+    parser.add_argument(
+        "--keep-english-tags",
+        action="store_true",
+        help="Standard edition: keep RatMonkeys tags and component lists in English (default: Full, translated).",
+    )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--keep-temp", action="store_true")
     return parser.parse_args(argv)
