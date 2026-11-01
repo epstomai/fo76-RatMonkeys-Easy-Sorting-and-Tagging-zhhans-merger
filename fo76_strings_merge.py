@@ -262,7 +262,7 @@ TAG_TRANSLATIONS = {
     "Mission": "任务",
     "Core": "核心",
     "Underarmor": "内衬",
-    "Flux": "溶剂",
+    "Flux": "熔剂",
     "Spoiled": "变质",
     "Foundation": "基金会",
     "Crater": "火山口",
@@ -502,7 +502,7 @@ SPECIAL_TRANSLATIONS.update(
 
 COMPONENT_TRANSLATIONS = {
     "Acid": "酸",
-    "Adhesive": "黏合剂",
+    "Adhesive": "黏着剂",
     "Aluminum": "铝",
     "Antiseptic": "抗菌剂",
     "Asbestos": "石棉",
@@ -512,7 +512,7 @@ COMPONENT_TRANSLATIONS = {
     "Ceramic": "陶瓷",
     "Circuitry": "电路元件",
     "Cloth": "布料",
-    "Coal": "煤炭",
+    "Coal": "煤",
     "Concrete": "混凝土",
     "Copper": "铜",
     "Cork": "软木",
@@ -525,23 +525,23 @@ COMPONENT_TRANSLATIONS = {
     "Gold": "黄金",
     "Lead": "铅",
     "Leather": "皮革",
-    "Nuclear Material": "核材料",
+    "Nuclear Material": "核子材料",
     "Oil": "油",
-    "Plastic": "塑料",
+    "Plastic": "塑胶",
     "Rubber": "橡胶",
     "Screw": "螺丝",
     "Silver": "银",
     "Spring": "弹簧",
     "Steel": "钢铁",
-    "Ultracite": "超铀矿",
-    "Vault Steel": "避难所钢材",
-    "Vault 96 Steel": "96号避难所钢材",
+    "Ultracite": "辐射极琉矿",
+    "Vault Steel": "避难所钢铁",
+    "Vault 96 Steel": "96号避难所钢铁",
     "Wood": "木头",
-    "Pure Cobalt Flux": "纯钴溶剂",
-    "Pure Fluorescent Flux": "纯荧光溶剂",
-    "Pure Violet Flux": "纯紫色溶剂",
-    "Pure Crimson Flux": "纯猩红溶剂",
-    "Pure Yellowcake Flux": "纯黄饼溶剂",
+    "Pure Cobalt Flux": "纯净钴蓝色熔剂",
+    "Pure Fluorescent Flux": "纯净荧光熔剂",
+    "Pure Violet Flux": "纯净紫色熔剂",
+    "Pure Crimson Flux": "纯净猩红色熔剂",
+    "Pure Yellowcake Flux": "纯净黄饼熔剂",
 }
 
 
@@ -637,6 +637,34 @@ def localize_ratmonkeys_additions(text: str) -> tuple[str, int, int]:
     return text, tag_count, component_count
 
 
+LEADING_TAGS = re.compile(r"^(?:\[[^\]\r\n]+\]\s*)*")
+TAGGED_NAME = re.compile(r"^((?:\[[^\]\r\n]+\]\s*)+)(.*?)(\s*\([^()\r\n]*\))?$")
+# Official zh prefixes that RatMonkeys replaces with a tag ("Bobblehead: Sneak" -> "[Bobblehead] Sneak").
+OFFICIAL_NAME_PREFIXES = ("玩家头衔：", "C.A.M.P.头衔：", "娃娃：", "大量")
+
+
+def graft_renamed_tagged(rat_text: str, en_text: str, zh_text: str) -> str | None:
+    """RatMonkeys renamed a tagged item, so the official English is not a substring.
+
+    Keep RatMonkeys' leading tags (and trailing component list) on the official Chinese
+    name instead of dropping them. Only short single-line names qualify.
+    """
+    if "\n" in rat_text or "\n" in zh_text or len(rat_text) > 120 or en_text.startswith("["):
+        return None
+    match = TAGGED_NAME.match(rat_text)
+    if not match or not match.group(2).strip():  # tag-only placeholders such as "[resource]"
+        return None
+    tags, group = match.group(1).rstrip(), match.group(3) or ""
+    name = zh_text
+    for prefix in OFFICIAL_NAME_PREFIXES:
+        if name.startswith(prefix):
+            name = name[len(prefix):]
+            break
+    if group and group.strip() in en_text:
+        group = ""
+    return f"{tags} {name}{group}"
+
+
 def merge_kind(
     kind: str,
     official_en_path: pathlib.Path,
@@ -652,6 +680,7 @@ def merge_kind(
     grafted = 0
     fallback_english = 0
     noncontain_changed = 0
+    renamed_grafted = 0
     manual_fixes = 0
     localized_tags = 0
     localized_components = 0
@@ -662,11 +691,18 @@ def merge_kind(
             merged = rat_text
             fallback_english += 1
         elif en_text is not None and rat_text != en_text and en_text and en_text in rat_text:
-            merged = rat_text.replace(en_text, zh_text, 1)
+            # graft after RatMonkeys' leading tags, so "[Note] Note" -> "[Note] 笔记", not "[笔记] Note"
+            lead = LEADING_TAGS.match(rat_text).group(0) if en_text in LEADING_TAGS.sub("", rat_text, 1) else ""
+            merged = lead + rat_text[len(lead):].replace(en_text, zh_text, 1)
             grafted += 1
         elif en_text is not None and rat_text != en_text:
-            merged = zh_text
-            noncontain_changed += 1
+            renamed = graft_renamed_tagged(rat_text, en_text, zh_text)
+            if renamed is not None:
+                merged = renamed
+                renamed_grafted += 1
+            else:
+                merged = zh_text
+                noncontain_changed += 1
         else:
             merged = zh_text if zh_text is not None else rat_text
         merged, fixed = apply_manual_fixes(en_text or rat_text, merged)
@@ -683,6 +719,7 @@ def merge_kind(
         "rat_changes_grafted": grafted,
         "fallback_english_entries": fallback_english,
         "rat_changes_left_as_chinese": noncontain_changed,
+        "renamed_tagged_grafted": renamed_grafted,
         "manual_fixes_applied": manual_fixes,
         "localized_tags": localized_tags,
         "localized_component_groups": localized_components,
