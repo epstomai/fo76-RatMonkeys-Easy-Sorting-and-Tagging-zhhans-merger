@@ -6,6 +6,8 @@ This tool:
 2. Extracts RatMonkeys Easy Sorting SeventySix_en strings from its zip.
 3. Localizes RatMonkeys-added tags, junk components, and weight units.
 4. Writes merged SeventySix_zhhans strings into the game's Data\\strings folder.
+5. Packages both Nexus editions (standard: English tags, Full: translated tags)
+   into release/ on every run.
 """
 
 from __future__ import annotations
@@ -140,7 +142,7 @@ def read_strings(path: pathlib.Path, kind: str) -> list[tuple[int, str]]:
     return rows
 
 
-def write_strings(path: pathlib.Path, kind: str, rows: list[tuple[int, str]]) -> None:
+def encode_strings(kind: str, rows: list[tuple[int, str]]) -> bytes:
     table = bytearray()
     payload = bytearray()
     for string_id, text in rows:
@@ -153,8 +155,33 @@ def write_strings(path: pathlib.Path, kind: str, rows: list[tuple[int, str]]) ->
             item = raw + b"\x00"
             payload += struct.pack("<I", len(item)) + item
 
+    return struct.pack("<II", len(rows), len(payload)) + bytes(table) + bytes(payload)
+
+
+def write_strings(path: pathlib.Path, kind: str, rows: list[tuple[int, str]]) -> None:
     tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_bytes(struct.pack("<II", len(rows), len(payload)) + table + payload)
+    tmp.write_bytes(encode_strings(kind, rows))
+    tmp.replace(path)
+
+
+# Nexus release archives; every run builds both.
+EDITIONS = {
+    "standard": {"keep_english_tags": True, "zip": "RatMonkeys Easy Sorting and Tagging - Simplified Chinese.zip"},
+    "full": {"keep_english_tags": False, "zip": "RatMonkeys Easy Sorting and Tagging - Simplified Chinese Full.zip"},
+}
+
+
+def write_release_zip(path: pathlib.Path, files: dict[str, bytes]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+        for name, data in files.items():
+            archive.writestr(name, data)
+    with zipfile.ZipFile(tmp) as archive:
+        bad = archive.testzip()
+    if bad:
+        tmp.unlink()
+        fail(f"Release zip corrupt ({bad}): {path}")
     tmp.replace(path)
 
 
@@ -719,28 +746,41 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         for kind in KINDS:
             copy_file(rat_files[f"seventysix_en.{kind.lower()}"], strings_dir / f"SeventySix_en.{kind}", args.dry_run)
 
+        installed = "standard" if args.keep_english_tags else "full"
+        release_dir = pathlib.Path(args.release_dir)
         report: dict[str, object] = {
             "dry_run": args.dry_run,
-            "keep_english_tags": args.keep_english_tags,
+            "installed_edition": installed,
             "backup_dir": str(backup_dir),
             "rat_zip": str(rat_zip),
             "strings_dir": str(strings_dir),
             "kinds": {},
+            "release": {},
         }
 
-        kind_report: dict[str, dict[str, int]] = {}
-        for kind in KINDS:
-            rows, stats = merge_kind(
-                kind,
-                extracted[f"seventysix_en.{kind.lower()}"],
-                extracted[f"seventysix_zhhans.{kind.lower()}"],
-                rat_files[f"seventysix_en.{kind.lower()}"],
-                keep_english_tags=args.keep_english_tags,
-            )
-            kind_report[kind] = stats
+        release: dict[str, object] = {}
+        for edition, spec in EDITIONS.items():
+            files: dict[str, bytes] = {}
+            kind_report: dict[str, dict[str, int]] = {}
+            for kind in KINDS:
+                rows, stats = merge_kind(
+                    kind,
+                    extracted[f"seventysix_en.{kind.lower()}"],
+                    extracted[f"seventysix_zhhans.{kind.lower()}"],
+                    rat_files[f"seventysix_en.{kind.lower()}"],
+                    keep_english_tags=spec["keep_english_tags"],
+                )
+                kind_report[kind] = stats
+                files[f"SeventySix_zhhans.{kind}"] = encode_strings(kind, rows)
+                if edition == installed and not args.dry_run:
+                    write_strings(strings_dir / f"SeventySix_zhhans.{kind}", kind, rows)
+            zip_path = release_dir / spec["zip"]
             if not args.dry_run:
-                write_strings(strings_dir / f"SeventySix_zhhans.{kind}", kind, rows)
-        report["kinds"] = kind_report
+                write_release_zip(zip_path, files)
+            release[edition] = {"zip": str(zip_path), "kinds": kind_report}
+            if edition == installed:
+                report["kinds"] = kind_report
+        report["release"] = release
         return report
     finally:
         if args.keep_temp:
@@ -763,7 +803,13 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--keep-english-tags",
         action="store_true",
-        help="Standard edition: keep RatMonkeys tags and component lists in English (default: Full, translated).",
+        help="Install the standard edition (English RatMonkeys tags) into the game instead of Full. "
+             "Both editions are always packaged into --release-dir.",
+    )
+    parser.add_argument(
+        "--release-dir",
+        default=str(pathlib.Path(__file__).resolve().parent / "release"),
+        help="Where the standard + Full release zips are written on every run.",
     )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--keep-temp", action="store_true")

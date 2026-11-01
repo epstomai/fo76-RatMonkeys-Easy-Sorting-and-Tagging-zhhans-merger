@@ -2,6 +2,7 @@ param(
     [string]$ToolsRoot = "F:\games\fallout76 tools",
     [string]$GameData = "H:\XboxGames\Fallout 76\Content\Data",
     [string]$RatZip = "",
+    [string]$ReleaseDir = "",
     [switch]$KeepEnglishTags,
     [switch]$DryRun,
     [switch]$KeepTemp
@@ -31,6 +32,9 @@ $argsList = @(
 
 if ($RatZip) {
     $argsList += @("--rat-zip", $RatZip)
+}
+if ($ReleaseDir) {
+    $argsList += @("--release-dir", $ReleaseDir)
 }
 if ($KeepEnglishTags) {
     $argsList += "--keep-english-tags"
